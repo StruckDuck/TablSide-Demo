@@ -513,9 +513,10 @@
     t += TIMING.soon;
     later(function() { setStatus('next', T('nextTitle'), T('nextSub')); }, t);
     t += TIMING.next;
-    later(function() { setStatus('incoming', T('incomingTitle'), T('incomingSub')); }, t);
-    t += TIMING.incoming;
-    later(function() { setDock('Continue to the thank-you page', goThankYou); }, t);
+    later(function() {
+      setStatus('incoming', T('incomingTitle'), T('incomingSub'));
+      setDock('Continue to the thank-you page', goThankYou);   // the button arrives with "On the way"
+    }, t);
   }
 
   $('g-request').addEventListener('click', function() {
