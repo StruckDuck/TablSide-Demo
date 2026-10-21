@@ -255,10 +255,22 @@
   } catch (e) { db = null; }
 
   // Same shape as the real guest pages' events, so your Stats tab can read them.
-  // Types used here: pitch_view, entry_landed, entry_proceeded, request, cancellation,
-  // link_click, demo_thankyou, demo_exit (label = the step they were on), contact_tap.
+  // Your Firestore rules accept only six event types (scan, request, cancellation, link_click,
+  // entry_landed, entry_proceeded). The extra things this page tracks are recorded as link clicks with
+  // a descriptive label, so they show up in the Stats tab's Link Clicks list for that venue:
+  //   "Viewed the page", "Reached thank-you page", "Closed demo at <step>", "Tapped text", "Tapped call"
+  var ALLOWED_EVENTS = ['scan', 'request', 'cancellation', 'link_click', 'entry_landed', 'entry_proceeded'];
   function logEvent(type, label, table) {
     if (!db || !venueId) return;
+    if (ALLOWED_EVENTS.indexOf(type) === -1) {
+      label = type === 'pitch_view' ? 'Viewed the page'
+        : type === 'demo_thankyou' ? 'Reached thank-you page'
+        : type === 'demo_exit' ? 'Closed demo at ' + label
+        : type === 'contact_tap' ? 'Tapped ' + label
+        : type;
+      type = 'link_click';
+    }
+    if (label) label = String(label).slice(0, 40);
     var data = { type: type, timestamp: FS.serverTimestamp() };
     if (table) data.table = table;
     if (label) data.label = label;
@@ -481,6 +493,7 @@
     if (!v) { $('g-error').textContent = T('entryError'); return; }
     state.table = v.slice(0, 6);
     logEvent('entry_proceeded', null, state.table);
+    logEvent('scan', null, state.table);   // reaching the request page is the demo's version of a scan
     $('g-entry').hidden = true;
     $('g-main').hidden = false;
     showScreen('landing');

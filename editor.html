@@ -528,9 +528,11 @@
   var FS = firebase.firestore.FieldValue;
   var currentUser = null;
 
-  // Every venue made here gets an id starting with this. It is how this editor tells its own venues
-  // apart from the real ones in your dashboard, so it only ever lists, renames or deletes its own.
-  var ID_PREFIX = 'demo_';
+  // Your Firestore rules only accept venue ids of exactly 8 letters or digits, and only a fixed list of
+  // fields, so a venue made here is recognized by its id: "pitch" plus 3 more characters. That is how this
+  // editor tells its own venues apart from the real ones in your dashboard, so it only ever lists, renames
+  // or deletes its own.
+  var ID_PREFIX = 'pitch';
 
   var venues = [];
   var workspaceSlug = null;
@@ -570,7 +572,7 @@
   function generateVenueId() {
     var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     var id = '';
-    for (var i = 0; i < 8; i++) id += chars[Math.floor(Math.random() * chars.length)];
+    for (var i = 0; i < 8 - ID_PREFIX.length; i++) id += chars[Math.floor(Math.random() * chars.length)];
     return ID_PREFIX + id;
   }
   function currentVenue() { return venues.find(function(v) { return v.slug === workspaceSlug; }); }
@@ -706,28 +708,36 @@
     btn.disabled = true;
     function tryCreate(attemptsLeft) {
       var id = generateVenueId();
-      db.collection('venues').doc(id).set({
-        ownerUid: currentUser.uid, name: name, tables: [],
-        colors: {}, links: [], sessionActive: false,
-        timerMins: TIMER_MINS, createdAt: FS.serverTimestamp()
-      }).then(function() {
-        venues.push({ name: name, slug: id, colors: {}, fonts: {}, texts: {}, links: [] });
-        sortVenues(); renderVenueGrid();
-        $('new-venue-name').value = '';
-        btn.disabled = false;
-        closeModal('add-venue-modal');
-        openWorkspace(id);
+      // only 3 characters of the id are random, so make sure this one is not already taken
+      db.collection('venues').doc(id).get().then(function(existing) {
+        if (existing.exists) {
+          if (attemptsLeft > 0) { tryCreate(attemptsLeft - 1); return; }
+          throw { code: 'id-taken' };
+        }
+        return db.collection('venues').doc(id).set({
+          ownerUid: currentUser.uid, name: name, tables: [],
+          colors: {}, links: [], sessionActive: false,
+          timerMins: TIMER_MINS, createdAt: FS.serverTimestamp()
+        }).then(function() {
+          venues.push({ name: name, slug: id, colors: {}, fonts: {}, texts: {}, links: [] });
+          sortVenues(); renderVenueGrid();
+          $('new-venue-name').value = '';
+          btn.disabled = false;
+          closeModal('add-venue-modal');
+          openWorkspace(id);
+        });
       }).catch(function(err) {
-        if (attemptsLeft > 0 && !(err && err.code === 'permission-denied')) { tryCreate(attemptsLeft - 1); return; }
+        if (attemptsLeft > 0 && !(err && (err.code === 'permission-denied' || err.code === 'id-taken'))) { tryCreate(attemptsLeft - 1); return; }
         btn.disabled = false;
         errEl.textContent = (err && err.code === 'permission-denied')
-          ? 'Could not create the venue. The server refused it.'
+          ? 'Could not create the venue. The server refused it. If this keeps happening, check that your account is active under billing.'
+          : (err && err.code === 'id-taken') ? 'Could not find a free venue id. Try again.'
           : 'Could not create the venue. Check your connection and try again.';
         errEl.style.display = 'block';
         if (window.console) console.error('Create failed:', err);
       });
     }
-    tryCreate(3);
+    tryCreate(5);
   });
 
   // ─── WORKSPACE NAVIGATION ───────────────────────────────────────────────────
