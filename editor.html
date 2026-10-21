@@ -308,6 +308,16 @@
   .copy-field .btn { white-space:nowrap; }
   .qr-frame { display:inline-block; background:#fff; padding:14px; border:1px solid var(--border); margin-bottom:1.1rem; }
   .qr-frame canvas, .qr-frame img { display:block; }
+  .card-builder { display:flex; gap:1.5rem; align-items:flex-start; flex-wrap:wrap; }
+  .card-controls { flex:1 1 240px; min-width:220px; }
+  .card-field { margin-bottom:1rem; }
+  .card-label { font-size:0.56rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+  .swatch-row { display:flex; gap:6px; flex-wrap:wrap; }
+  .swatch { width:34px; height:34px; border:1px solid var(--border); cursor:pointer; padding:0; position:relative; }
+  .swatch.on { outline:2px solid var(--gold); outline-offset:2px; }
+  .card-warn { font-size:0.62rem; color:var(--red); line-height:1.5; margin-bottom:1rem; }
+  .card-preview-wrap { flex:0 0 auto; }
+  #card-canvas { width:240px; height:auto; display:block; border:1px solid var(--border); background:#fff; }
   .qr-actions { display:flex; gap:0.75rem; flex-wrap:wrap; }
   .block-note { font-size:0.7rem; color:var(--muted); line-height:1.65; margin-top:0.6rem; }
   a.btn { text-decoration:none; display:inline-flex; align-items:center; }
@@ -466,14 +476,38 @@
       <div class="tab-panel" id="panel-qr">
         <div class="panel-title">QR Code</div>
 
-        <div class="panel-block" style="max-width:480px;">
-          <div class="form-label">Table card QR</div>
-          <div class="block-note" style="margin:0 0 1rem;">For the picture of your table card. Scanning it opens this venue’s demo straight at the table number page.</div>
-          <div id="qr-preview"></div>
-          <div class="qr-actions">
-            <button class="btn btn-solid" id="qr-download-btn">Download QR</button>
-            <button class="btn btn-outline" id="qr-copy-demo-btn">Copy Demo Link</button>
+        <div class="panel-block" style="max-width:640px;">
+          <div class="form-label">Table card</div>
+          <div class="block-note" style="margin:0 0 1rem;">The picture for your table card. Scanning the code opens this venue’s demo at the table number page. Colors come from this venue’s palette, and the fonts follow its Appearance settings.</div>
+          <div class="card-builder">
+            <div class="card-controls">
+              <div class="card-field">
+                <div class="card-label">Background</div>
+                <div class="swatch-row" id="card-bg-swatches"></div>
+              </div>
+              <div class="card-field">
+                <div class="card-label">QR code and text</div>
+                <div class="swatch-row" id="card-fg-swatches"></div>
+              </div>
+              <div class="card-warn" id="card-warn" style="display:none;"></div>
+              <div class="card-field">
+                <div class="card-label">Card text</div>
+                <textarea class="short-input" id="card-text" rows="3" spellcheck="true"></textarea>
+                <button class="tx-reset" id="card-text-reset" type="button" style="visibility:visible;margin-top:4px;">Reset to default</button>
+              </div>
+              <div class="card-field">
+                <div class="card-label">Table number</div>
+                <input type="text" class="short-input" id="card-number" maxlength="3" inputmode="numeric" style="width:90px;">
+              </div>
+              <div class="qr-actions">
+                <button class="btn btn-solid" id="qr-download-btn">Download Card</button>
+                <button class="btn btn-outline" id="qr-copy-demo-btn">Copy Demo Link</button>
+              </div>
+              <div class="block-note">Saved in this browser for each venue. The image is 601 by 751 pixels. Change the number and download again for each table.</div>
+            </div>
+            <div class="card-preview-wrap"><canvas id="card-canvas" width="601" height="751"></canvas></div>
           </div>
+          <div id="card-nolink" class="block-note" style="margin:1rem 0 0;color:var(--red);display:none;">Enter the address where the pitch folder is hosted (below) to make the code.</div>
         </div>
 
         <div class="panel-block" style="max-width:480px;">
@@ -1180,22 +1214,135 @@
     });
   });
 
-  // ─── QR CODE (the table card's QR opens the demo at the table number page) ──
-  var QR_PAD = 64;   // white margin around the downloaded code, so it scans on any background
+  // ─── TABLE CARD (QR + wording + table number, drawn to a 601 x 751 picture) ──
+  var CARD_W = 601, CARD_H = 751, QR_SIZE = 380;
+  var CARD_DEFAULT_TEXT = 'There is a magician in the room tonight.\nScan to request a visit.';
+  var SWATCH_KEYS = ['bg', 'box', 'accent', 'highlight', 'text', 'muted'];
+  var cardState = { bg: 'bg', fg: 'text', text: CARD_DEFAULT_TEXT, number: '5' };
+  function cardKey(slug) { return 'pitchCard:' + slug; }
+  function loadCardState(slug) {
+    cardState = { bg: 'bg', fg: 'text', text: CARD_DEFAULT_TEXT, number: '5' };
+    try {
+      var raw = JSON.parse(localStorage.getItem(cardKey(slug)) || 'null');
+      if (raw) {
+        if (SWATCH_KEYS.indexOf(raw.bg) >= 0) cardState.bg = raw.bg;
+        if (SWATCH_KEYS.indexOf(raw.fg) >= 0) cardState.fg = raw.fg;
+        if (typeof raw.text === 'string') cardState.text = raw.text;
+        if (typeof raw.number === 'string') cardState.number = raw.number;
+      }
+    } catch (e) {}
+  }
+  function saveCardState(slug) { try { localStorage.setItem(cardKey(slug), JSON.stringify(cardState)); } catch (e) {} }
+  function venuePalette(v) { return Object.assign({}, DEFAULT_COLORS, v.colors || {}); }
+  function luminance(hex) {
+    var m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return 0;
+    var n = parseInt(m[1], 16), ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(function(x) {
+      x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+  }
+  function contrast(a, b) { var l1 = luminance(a), l2 = luminance(b); return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); }
+  function wrapLines(ctx, text, maxW) {
+    var out = [];
+    String(text || '').split('\n').forEach(function(par) {
+      var words = par.split(/\s+/).filter(Boolean), line = '';
+      if (!words.length) { out.push(''); return; }
+      words.forEach(function(w) {
+        var t = line ? line + ' ' + w : w;
+        if (line && ctx.measureText(t).width > maxW) { out.push(line); line = w; } else line = t;
+      });
+      out.push(line);
+    });
+    return out;
+  }
+  // Draws the card into `canvas`, then calls done(). Waits for the venue's fonts so the picture matches.
+  function drawCard(canvas, v, done) {
+    var pal = venuePalette(v), f = Object.assign({}, DEFAULT_FONTS, v.fonts || {});
+    var bg = pal[cardState.bg], fg = pal[cardState.fg];
+    var bodyStack = FONT_STACKS[f.body] || FONT_STACKS[DEFAULT_FONTS.body];
+    var displayStack = FONT_STACKS[f.display] || FONT_STACKS[DEFAULT_FONTS.display];
+    var url = demoUrl(v.slug);
+    var loads = [];
+    if (document.fonts && document.fonts.load) {
+      loads.push(document.fonts.load('36px ' + bodyStack, 'There is a magician 5'));
+      loads.push(document.fonts.load('84px ' + displayStack, '0123456789'));
+    }
+    Promise.all(loads).catch(function() {}).then(function() {
+      var scratch = document.createElement('div');
+      scratch.style.position = 'absolute'; scratch.style.left = '-9999px';
+      document.body.appendChild(scratch);
+      new QRCode(scratch, { text: url, width: QR_SIZE, height: QR_SIZE, colorDark: fg, colorLight: bg, correctLevel: QRCode.CorrectLevel.H });
+      function paint(qrSrc) {
+        document.body.removeChild(scratch);
+        canvas.width = CARD_W; canvas.height = CARD_H;
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = bg; ctx.fillRect(0, 0, CARD_W, CARD_H);
+        ctx.drawImage(qrSrc, (CARD_W - QR_SIZE) / 2, 60, QR_SIZE, QR_SIZE);
+        // wording, centered under the code; shrinks if there is a lot of it
+        ctx.fillStyle = fg; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+        var size = 36, lines, lh;
+        for (;;) {
+          ctx.font = size + 'px ' + bodyStack;
+          lines = wrapLines(ctx, cardState.text, 500);
+          lh = Math.round(size * 1.3);
+          if (lines.length * lh <= 150 || size <= 16) break;
+          size -= 2;
+        }
+        var y = 505;
+        lines.forEach(function(l) { ctx.fillText(l, CARD_W / 2, y); y += lh; });
+        // table number
+        ctx.font = '84px ' + displayStack;
+        ctx.fillText(cardState.number || '', CARD_W / 2, 705);
+        // dashed cut line along the bottom edge
+        ctx.strokeStyle = fg; ctx.globalAlpha = 0.35; ctx.lineWidth = 2; ctx.setLineDash([8, 6]);
+        ctx.beginPath(); ctx.moveTo(0, CARD_H - 2); ctx.lineTo(CARD_W, CARD_H - 2); ctx.stroke();
+        ctx.setLineDash([]); ctx.globalAlpha = 1;
+        if (done) done();
+      }
+      setTimeout(function() {
+        var src = scratch.querySelector('canvas'), img = scratch.querySelector('img');
+        if (src) paint(src);
+        else if (img) { var i2 = new Image(); i2.onload = function() { paint(i2); }; i2.src = img.src; }
+        else { document.body.removeChild(scratch); alert('Could not generate the QR code. Try again.'); }
+      }, 60);
+    });
+  }
+  var cardDrawToken = 0;
+  function renderSwatches(id, which, pal) {
+    var box = $(id);
+    box.innerHTML = '';
+    SWATCH_KEYS.forEach(function(k) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'swatch' + (cardState[which] === k ? ' on' : '');
+      b.style.background = pal[k]; b.title = k.charAt(0).toUpperCase() + k.slice(1) + ' ' + pal[k];
+      b.setAttribute('aria-label', b.title);
+      b.addEventListener('click', function() {
+        var v = currentVenue(); if (!v) return;
+        cardState[which] = k; saveCardState(v.slug); renderQrTab();
+      });
+      box.appendChild(b);
+    });
+  }
   function renderQrTab() {
     var v = currentVenue();
     if (!v) return;
     var baseInput = $('pitch-base');
     if (document.activeElement !== baseInput) baseInput.value = savedBase() || defaultBase();
     var land = landingUrl(v.slug), demo = demoUrl(v.slug);
-    var box = $('qr-preview');
-    box.innerHTML = '';
-    if (demo) {
-      var frame = document.createElement('div'); frame.className = 'qr-frame'; box.appendChild(frame);
-      new QRCode(frame, { text: demo, width: 220, height: 220, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.H });
-    } else {
-      box.innerHTML = '<div class="block-note" style="margin:0 0 1rem;color:var(--red);">Enter the address where the pitch folder is hosted (below) to make the code.</div>';
-    }
+    if (cardState.slug !== v.slug) { loadCardState(v.slug); cardState.slug = v.slug; $('card-text').value = cardState.text; $('card-number').value = cardState.number; }
+    var pal = venuePalette(v);
+    renderSwatches('card-bg-swatches', 'bg', pal);
+    renderSwatches('card-fg-swatches', 'fg', pal);
+    var warn = $('card-warn'), ratio = contrast(pal[cardState.bg], pal[cardState.fg]);
+    if (cardState.bg === cardState.fg || ratio < 4) {
+      warn.textContent = 'These two colors are too close. The code may not scan. Pick a lighter and a darker one.'; warn.style.display = 'block';
+    } else if (luminance(pal[cardState.fg]) > luminance(pal[cardState.bg])) {
+      warn.textContent = 'The code is lighter than its background. Some phones will not scan that, so test it before printing.'; warn.style.display = 'block';
+    } else warn.style.display = 'none';
+    $('card-nolink').style.display = demo ? 'none' : 'block';
+    var canvas = $('card-canvas');
+    if (demo) { var token = ++cardDrawToken; drawCard(canvas, v, function() { if (token !== cardDrawToken) return; }); }
+    else canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
     $('landing-link').value = land;
     $('qr-download-btn').disabled = !demo;
     $('qr-copy-demo-btn').disabled = !demo;
@@ -1208,35 +1355,32 @@
     try { localStorage.setItem(BASE_KEY, this.value.trim()); } catch (e) {}
     renderQrTab();
   });
+  $('card-text').addEventListener('input', function() {
+    var v = currentVenue(); if (!v) return;
+    cardState.text = this.value; saveCardState(v.slug); renderQrTab();
+  });
+  $('card-text-reset').addEventListener('click', function() {
+    var v = currentVenue(); if (!v) return;
+    cardState.text = CARD_DEFAULT_TEXT; $('card-text').value = CARD_DEFAULT_TEXT; saveCardState(v.slug); renderQrTab();
+  });
+  $('card-number').addEventListener('input', function() {
+    var v = currentVenue(); if (!v) return;
+    this.value = this.value.replace(/[^0-9]/g, '');
+    cardState.number = this.value; saveCardState(v.slug); renderQrTab();
+  });
   $('qr-copy-demo-btn').addEventListener('click', function() { var v = currentVenue(); if (v) copyText(demoUrl(v.slug), this); });
   $('copy-landing-btn').addEventListener('click', function() { var v = currentVenue(); if (v) copyText(landingUrl(v.slug), this); });
 
   $('qr-download-btn').addEventListener('click', function() {
     var v = currentVenue();
-    var url = v && demoUrl(v.slug);
-    if (!url) return;
-    var scratch = document.createElement('div');
-    scratch.style.position = 'absolute'; scratch.style.left = '-9999px';
-    document.body.appendChild(scratch);
-    new QRCode(scratch, { text: url, width: 800, height: 800, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.H });
-    setTimeout(function() {
-      var src = scratch.querySelector('canvas');
-      var img = scratch.querySelector('img');
-      var out = document.createElement('canvas');
-      out.width = out.height = 800 + QR_PAD * 2;
-      var ctx = out.getContext('2d');
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, out.width, out.height);
-      function finish() {
-        document.body.removeChild(scratch);
-        var slug = v.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'venue';
-        var a = document.createElement('a');
-        a.href = out.toDataURL('image/png'); a.download = 'tent-card-qr-' + slug + '.png';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      }
-      if (src) { ctx.drawImage(src, QR_PAD, QR_PAD); finish(); }
-      else if (img) { var i2 = new Image(); i2.onload = function() { ctx.drawImage(i2, QR_PAD, QR_PAD, 800, 800); finish(); }; i2.src = img.src; }
-      else { document.body.removeChild(scratch); alert('Could not generate the QR code. Try again.'); }
-    }, 200);
+    if (!v || !demoUrl(v.slug)) return;
+    var out = document.createElement('canvas');
+    drawCard(out, v, function() {
+      var slug = v.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'venue';
+      var a = document.createElement('a');
+      a.href = out.toDataURL('image/png'); a.download = 'table-card-' + slug + '-' + (cardState.number || 'x') + '.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    });
   });
 
   // ─── SIGN IN ────────────────────────────────────────────────────────────────
