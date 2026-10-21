@@ -55,10 +55,12 @@
   @keyframes dockin { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
   .g-stack { width:100%; max-width:420px; display:flex; flex-direction:column; align-items:stretch; }
   .g-stack[hidden] { display:none; }
-  .note { margin-bottom:1rem; background:#EDE0C0; color:#221C14; border:1px solid #C8B090; padding:.85rem 1.1rem .95rem; font-family:'Outfit', sans-serif; text-align:left; box-shadow:0 8px 24px rgba(0,0,0,.35); animation:dockin .35s ease both; }
+  /* the note floats over the top of the page, so showing or hiding it never moves anything, and
+     taps pass straight through it */
+  .note { position:fixed; top:64px; left:0; right:0; margin:0 auto; z-index:4; width:min(420px, calc(100% - 2rem)); pointer-events:none; background:#EDE0C0; color:#221C14; border:1px solid #C8B090; padding:.65rem .9rem .75rem; font-family:'Outfit', sans-serif; text-align:left; box-shadow:0 8px 24px rgba(0,0,0,.4); animation:dockin .35s ease both; }
   .note[hidden] { display:none; }
-  .note-eyebrow { font-size:.6rem; font-weight:500; letter-spacing:.22em; text-transform:uppercase; color:#304050; margin-bottom:.4rem; }
-  .note p { font-family:'Outfit', sans-serif; font-weight:400; font-size:.95rem; line-height:1.55; margin:0; text-wrap:pretty; }
+  .note-eyebrow { display:inline-block; margin-right:.5rem; font-size:.58rem; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#304050; vertical-align:.08em; }
+  .note p { font-family:'Outfit', sans-serif; font-weight:400; font-size:.88rem; line-height:1.5; margin:0; text-wrap:pretty; }
 
   /* ───────────── GUEST PAGES (a faithful copy of enter.html and table.html, scoped to the demo) ───────────── */
   #demo {
@@ -167,7 +169,7 @@
     </div>
 
     <div class="g-stack" id="g-stack" hidden>
-    <div class="note" id="note" role="status" hidden><div class="note-eyebrow">Demo</div><p id="note-text"></p></div>
+    <div class="note" id="note" role="status" hidden><p><span class="note-eyebrow">Demo</span><span id="note-text"></span></p></div>
     <div class="g-box" id="g-main">
       <div class="g-screen active" id="g-screen-landing">
         <img class="g-logo" data-logo style="display:none;" alt="">
@@ -422,8 +424,9 @@
     $('g-status-sub').textContent = sub;
   }
 
-  // The demo layer: a note above the guest page (it never covers anything, and gives way to the next
-  // one as the guest moves on), and one button at a time along the bottom.
+  // The demo layer: a small note floating over the top of the guest page (it never moves the page or
+  // blocks a tap, and gives way to the next one as the guest moves on), and one button at a time along
+  // the bottom.
   function showNote(text, key) {
     if (key) { if (state.seen[key]) return; state.seen[key] = true; }
     var n = $('note');
