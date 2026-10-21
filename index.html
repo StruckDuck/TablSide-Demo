@@ -389,12 +389,12 @@
   applyTexts();   // defaults first; the venue's own wording replaces them when it arrives
 
   // ─── THE TABLE CARD PICTURE ─────────────────────────────────────────────────
-  // tent/<venue id>.jpg if you made one for this venue, otherwise tent/default.jpg
+  // assets/<venue id>.jpg if you made one for this venue, otherwise assets/default.jpg
   (function() {
     var img = $('tent-img');
     var safe = /^[A-Za-z0-9_-]+$/.test(venueId) ? venueId : '';
-    img.onerror = function() { img.onerror = null; img.src = 'tent/default.jpg'; };
-    img.src = safe ? 'tent/' + safe + '.jpg' : 'tent/default.jpg';
+    img.onerror = function() { img.onerror = null; img.src = 'assets/default.jpg'; };
+    img.src = safe ? 'assets/' + safe + '.jpg' : 'assets/default.jpg';
   })();
 
   // ─── DEMO STATE ─────────────────────────────────────────────────────────────
