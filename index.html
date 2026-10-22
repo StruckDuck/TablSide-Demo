@@ -48,10 +48,10 @@
   .demo[hidden] { display:none !important; }
   .demo-x { position:fixed; top:max(12px, env(safe-area-inset-top)); right:max(12px, env(safe-area-inset-right)); z-index:6; width:44px; height:44px; border-radius:50%; background:#141210; border:1px solid #C8B090; color:#EDE0C0; display:flex; align-items:center; justify-content:center; cursor:pointer; -webkit-tap-highlight-color:transparent; }
   .demo-x svg { width:16px; height:16px; display:block; pointer-events:none; }
-  .demo-x:focus-visible, .dock-btn:focus-visible { outline:3px solid #EDE0C0; outline-offset:3px; box-shadow:0 0 0 6px #141210; }
-  .dock { position:fixed; left:0; right:0; bottom:0; z-index:3; display:flex; justify-content:center; padding:1rem 1rem calc(1.25rem + env(safe-area-inset-bottom)); pointer-events:none; }
-  .dock[hidden] { display:none; }
-  .dock-btn { pointer-events:auto; min-height:48px; padding:0 1.5rem; background:#EDE0C0; color:#141210; border:1px solid #C8B090; font-family:'Outfit', sans-serif; font-weight:500; font-size:.78rem; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; box-shadow:0 8px 28px rgba(0,0,0,.45); animation:dockin .35s ease both; -webkit-tap-highlight-color:transparent; }
+  .demo-x:focus-visible, .demo-btn:focus-visible { outline:3px solid #EDE0C0; outline-offset:3px; box-shadow:0 0 0 6px #141210; }
+  .demo-btn { width:100%; min-height:48px; padding:0 1rem; background:#EDE0C0; color:#141210; border:1px solid #C8B090; font-family:'Outfit', sans-serif; font-weight:500; font-size:.78rem; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; box-shadow:0 8px 28px rgba(0,0,0,.45); -webkit-tap-highlight-color:transparent; }
+  .demo-btn.enter { animation:dockin .35s ease both; }
+  .demo-btn.held { visibility:hidden; }
   @keyframes dockin { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
   .g-stack { width:100%; max-width:420px; display:flex; flex-direction:column; align-items:stretch; }
   .g-stack[hidden] { display:none; }
@@ -60,6 +60,7 @@
   .note { position:fixed; bottom:calc(6.75rem + env(safe-area-inset-bottom)); left:0; right:0; margin:0 auto; z-index:4; width:min(420px, calc(100% - 2rem)); pointer-events:none; background:#EDE0C0; color:#221C14; border:1px solid #C8B090; padding:.65rem .9rem .75rem; font-family:'Outfit', sans-serif; text-align:left; box-shadow:0 8px 24px rgba(0,0,0,.4); animation:dockin .35s ease both; }
   .note[hidden] { display:none; }
   .note-eyebrow { display:inline-block; margin-right:.5rem; font-size:.58rem; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#304050; vertical-align:.08em; }
+  .note-eyebrow[hidden] { display:none; }
   .note p { font-family:'Outfit', sans-serif; font-weight:400; font-size:.88rem; line-height:1.5; margin:0; text-wrap:pretty; }
 
   /* ───────────── GUEST PAGES (a faithful copy of enter.html and table.html, scoped to the demo) ───────────── */
@@ -77,6 +78,9 @@
   .g-box { width:100%; max-width:420px; display:flex; flex-direction:column; align-items:center; gap:2rem; background:var(--teal); border:1px solid var(--border); padding:2.5rem 2rem; }
   .g-entry { width:100%; max-width:340px; display:flex; flex-direction:column; align-items:center; gap:1.75rem; background:var(--teal); border:1px solid var(--border); padding:2.5rem 2rem; }
   .g-box[hidden], .g-entry[hidden] { display:none; }
+  /* the queue-page note sits in the page just under the logo; its space is held from the moment the page opens, so it fades in without moving anything */
+  .note.in-page { position:static; width:100%; margin:0; box-sizing:border-box; pointer-events:auto; box-shadow:none; }
+  .note.in-page.held { visibility:hidden; }
   .g-logo { height:64px; width:auto; object-fit:contain; }
   .g-rule { width:100%; display:flex; align-items:center; gap:1rem; }
   .g-rule-line { flex:1; height:1px; background:var(--border); }
@@ -122,7 +126,7 @@
   .g-error { font-size:0.65rem; color:#f5a0a0; text-align:center; letter-spacing:0.08em; text-transform:uppercase; min-height:1rem; }
 
   @media (prefers-reduced-motion: reduce) {
-    .tent::after, .g-status-ring, .g-status-dot, .dock-btn, .note { animation:none !important; }
+    .tent::after, .g-status-ring, .g-status-dot, .demo-btn, .note { animation:none !important; }
   }
 </style>
 </head>
@@ -169,7 +173,7 @@
     </div>
 
     <div class="g-stack" id="g-stack" hidden>
-    <div class="note" id="note" role="status" hidden><p><span class="note-eyebrow">Demo</span><span id="note-text"></span></p></div>
+    <div class="note" id="note" role="status" hidden><p><span class="note-eyebrow" id="note-label">Demo</span><span id="note-text"></span></p></div>
     <div class="g-box" id="g-main">
       <div class="g-screen active" id="g-screen-landing">
         <img class="g-logo" data-logo style="display:none;" alt="">
@@ -184,6 +188,7 @@
 
       <div class="g-screen" id="g-screen-queue">
         <img class="g-logo" data-logo style="display:none;" alt="">
+        <div class="note in-page held" id="note-q" role="status" hidden><p><span class="note-eyebrow" id="note-q-label"></span><span id="note-q-text"></span></p></div>
         <div class="g-rule"><div class="g-rule-line"></div><div class="g-rule-diamond"></div><div class="g-rule-line"></div></div>
         <div class="g-status-card">
           <div class="g-status-ring waiting" id="g-ring"><div class="g-status-dot"></div></div>
@@ -192,6 +197,7 @@
         </div>
         <button type="button" class="g-btn-cancel" id="g-cancel"></button>
         <div class="g-rule"><div class="g-rule-line"></div><div class="g-rule-diamond"></div><div class="g-rule-line"></div></div>
+        <button type="button" class="demo-btn held" id="btn-continue"></button>
         <div class="g-links" data-links="queue"></div>
         <div class="g-footer-name" data-footer></div>
       </div>
@@ -201,13 +207,12 @@
         <div class="g-rule"><div class="g-rule-line"></div><div class="g-rule-diamond"></div><div class="g-rule-line"></div></div>
         <div class="g-after-headline" id="g-after-headline"></div>
         <div class="g-links" data-links="after"></div>
+        <button type="button" class="demo-btn" id="btn-back"></button>
         <div class="g-footer-name" data-footer></div>
       </div>
     </div>
     </div>
   </div>
-
-  <div class="dock" id="dock" hidden><button type="button" class="dock-btn" id="dock-btn"></button></div>
 
   <button type="button" class="demo-x" id="demo-x" aria-label="Close the demo and go back to the offer">
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 2l12 12M14 2L2 14"/></svg>
@@ -427,23 +432,59 @@
   // The demo layer: a small note floating over the top of the guest page (it never moves the page or
   // blocks a tap, and gives way to the next one as the guest moves on), and one button at a time along
   // the bottom.
+  // The demo's own wording (dialogue boxes and buttons). All of it lives here.
+  var DEMO_DEFAULTS = {
+    noteLabel: '',
+    noteRequest: "You're a guest at Table {table}. Go ahead and request a visit from Joshua.",
+    noteQueue: 'Watch your place in line while you wait.',
+    noteQueueLinks: 'The links at the bottom are {venue}’s own, so guests can reach your menu, events, or anything else you choose to share.',
+    buttonThankYou: 'Continue to the thank-you screen',
+    buttonBack: 'Back to the main page'
+  };
+  var demoText = {};
+  function D(key, vars) {
+    var v = demoText[key];
+    var t = (typeof v === 'string') ? v : DEMO_DEFAULTS[key];
+    vars = vars || {};
+    return t.replace(/\{(table|venue)\}/g, function(m, k) { return vars[k] != null ? vars[k] : m; });
+  }
+
+  function fillNote(prefix, text) {
+    var lab = D('noteLabel');
+    $(prefix + '-label').textContent = lab; $(prefix + '-label').hidden = !lab;
+    $(prefix + '-text').textContent = text;
+  }
+  function replay(el) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; }
+  // The request-page note floats near the bottom. The queue-page note lives in the page under the logo.
   function showNote(text, key) {
     if (key) { if (state.seen[key]) return; state.seen[key] = true; }
+    if (key === 'queue') {
+      var q = $('note-q');
+      fillNote('note-q', text);
+      q.hidden = false; q.classList.remove('held'); replay(q);
+      return;
+    }
     var n = $('note');
-    $('note-text').textContent = text;
-    n.hidden = false;
-    n.style.animation = 'none'; void n.offsetWidth; n.style.animation = '';
+    fillNote('note', text);
+    n.hidden = false; replay(n);
   }
-  function hideNote() { $('note').hidden = true; }
-  function setDock(label, handler) {
-    var b = $('dock-btn');
-    b.textContent = label;
-    b.onclick = handler;
-    // restart the entrance animation each time a new button appears
-    b.style.animation = 'none'; void b.offsetWidth; b.style.animation = '';
-    $('dock').hidden = false;
+  function hideNote() { $('note').hidden = true; $('note-q').hidden = true; $('note-q').classList.add('held'); }
+  // Holds the queue note's space (invisible) so it can fade in without moving the page
+  function reserveQueueNote(text) {
+    var q = $('note-q');
+    if (state.seen.queue) { q.hidden = true; return; }
+    fillNote('note-q', text);
+    q.classList.add('held'); q.hidden = false;
   }
-  function hideDock() { $('dock').hidden = true; $('dock-btn').onclick = null; }
+  function holdContinue() {
+    var b = $('btn-continue');
+    b.textContent = D('buttonThankYou'); b.classList.add('held'); b.classList.remove('enter'); b.onclick = null;
+  }
+  function showContinue() {
+    var b = $('btn-continue');
+    b.classList.remove('held'); b.classList.add('enter'); replay(b); b.onclick = goThankYou;
+  }
+  function hideDock() { var b = $('btn-continue'); b.classList.add('held'); b.onclick = null; }
 
   function resetDemo() {
     clearTimers(); hideNote(); hideDock();
@@ -498,7 +539,7 @@
     showScreen('landing');
     state.step = 'request';
     later(function() {
-      showNote("You're a guest at Table " + state.table + ". This is a demo, so nothing is actually sent. Go ahead and request a visit from Joshua.", 'request');
+      showNote(D('noteRequest', { table: state.table }), 'request');
     }, 250);
   }
   $('g-go').addEventListener('click', proceed);
@@ -515,24 +556,27 @@
     t += TIMING.next;
     later(function() {
       setStatus('incoming', T('incomingTitle'), T('incomingSub'));
-      setDock('Continue to the thank-you page', goThankYou);   // the button arrives with "On the way"
+      showContinue();   // the button arrives with "On the way"
     }, t);
+  }
+
+  function queueNoteText() {
+    var text = D('noteQueue');
+    if (linksFor('queue').length && D('noteQueueLinks').trim()) {
+      text += ' ' + D('noteQueueLinks', { venue: venueName() || 'the venue' });
+    }
+    return text;
   }
 
   $('g-request').addEventListener('click', function() {
     hideNote();
     logEvent('request', null, state.table);
+    holdContinue();
+    reserveQueueNote(queueNoteText());
     showScreen('queue');
     state.step = 'queue';
     startCycle();
-    later(function() {
-      var name = venueName();
-      var text = 'Watch your place in line while you wait.';
-      if (linksFor('queue').length) {
-        text += ' The links at the bottom are ' + (name ? name + '’s' : 'the venue’s') + ' own, so guests can reach your menu, events, or anything else you choose to share.';
-      }
-      showNote(text, 'queue');
-    }, 350);
+    later(function() { showNote(queueNoteText(), 'queue'); }, 350);
   });
 
   $('g-cancel').addEventListener('click', function() {
@@ -547,7 +591,8 @@
     showScreen('after');
     state.step = 'after';
     logEvent('demo_thankyou', null, state.table);
-    setDock('Back to the offer', function() { closeDemo(true); });
+    $('btn-back').textContent = D('buttonBack');
+    $('btn-back').onclick = function() { closeDemo(true); };
   }
 
   // Tap flash and click tracking on the venue's links
