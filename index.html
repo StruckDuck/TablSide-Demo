@@ -57,7 +57,7 @@
   .g-stack[hidden] { display:none; }
   /* the note floats over the top of the page, so showing or hiding it never moves anything, and
      taps pass straight through it */
-  .note { position:fixed; top:64px; left:0; right:0; margin:0 auto; z-index:4; width:min(420px, calc(100% - 2rem)); pointer-events:none; background:#EDE0C0; color:#221C14; border:1px solid #C8B090; padding:.65rem .9rem .75rem; font-family:'Outfit', sans-serif; text-align:left; box-shadow:0 8px 24px rgba(0,0,0,.4); animation:dockin .35s ease both; }
+  .note { position:fixed; bottom:calc(6.75rem + env(safe-area-inset-bottom)); left:0; right:0; margin:0 auto; z-index:4; width:min(420px, calc(100% - 2rem)); pointer-events:none; background:#EDE0C0; color:#221C14; border:1px solid #C8B090; padding:.65rem .9rem .75rem; font-family:'Outfit', sans-serif; text-align:left; box-shadow:0 8px 24px rgba(0,0,0,.4); animation:dockin .35s ease both; }
   .note[hidden] { display:none; }
   .note-eyebrow { display:inline-block; margin-right:.5rem; font-size:.58rem; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#304050; vertical-align:.08em; }
   .note p { font-family:'Outfit', sans-serif; font-weight:400; font-size:.88rem; line-height:1.5; margin:0; text-wrap:pretty; }
