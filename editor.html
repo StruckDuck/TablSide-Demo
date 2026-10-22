@@ -478,7 +478,7 @@
 
         <div class="panel-block" style="max-width:640px;">
           <div class="form-label">Table card</div>
-          <div class="block-note" style="margin:0 0 1rem;">The picture for your table card. Scanning the code opens this venue’s demo at the table number page. Colors come from this venue’s palette, and the fonts follow its Appearance settings.</div>
+          <div class="block-note" style="margin:0 0 1rem;">The picture for your table card. Scanning the code opens this venue’s demo at the table number page, with this table number shown faded for the guest to type over. Colors come from this venue’s palette, and the fonts follow its Appearance settings.</div>
           <div class="card-builder">
             <div class="card-controls">
               <div class="card-field">
@@ -1267,7 +1267,7 @@
     var bg = pal[cardState.bg], fg = pal[cardState.fg];
     var bodyStack = FONT_STACKS[f.body] || FONT_STACKS[DEFAULT_FONTS.body];
     var displayStack = FONT_STACKS[f.display] || FONT_STACKS[DEFAULT_FONTS.display];
-    var url = demoUrl(v.slug);
+    var url = demoUrl(v.slug) + (cardState.number ? '&table=' + encodeURIComponent(cardState.number) : '');   // the demo shows this number faded on its table page
     var loads = [];
     if (document.fonts && document.fonts.load) {
       loads.push(document.fonts.load('36px ' + bodyStack, 'There is a magician 5'));
@@ -1298,11 +1298,7 @@
         lines.forEach(function(l) { ctx.fillText(l, CARD_W / 2, y); y += lh; });
         // table number
         ctx.font = '84px ' + displayStack;
-        ctx.fillText(cardState.number || '', CARD_W / 2, 705);
-        // dashed cut line along the bottom edge
-        ctx.strokeStyle = fg; ctx.globalAlpha = 0.35; ctx.lineWidth = 2; ctx.setLineDash([8, 6]);
-        ctx.beginPath(); ctx.moveTo(0, CARD_H - 2); ctx.lineTo(CARD_W, CARD_H - 2); ctx.stroke();
-        ctx.setLineDash([]); ctx.globalAlpha = 1;
+        ctx.fillText(cardState.number || '', CARD_W / 2, 697);
         if (done) done();
       }
       setTimeout(function() {
