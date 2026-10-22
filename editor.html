@@ -518,6 +518,12 @@
             <a class="btn btn-outline" id="open-landing-btn" href="#" target="_blank" rel="noopener">Open</a>
           </div>
           <div class="block-note">The personalized page for this venue. This is the link the mailer card points to.</div>
+          <div class="form-label" style="margin-top:1.25rem;">Landing page QR (for the mailer card)</div>
+          <div id="landing-qr-preview"></div>
+          <div class="qr-actions">
+            <button class="btn btn-solid" id="landing-qr-download-btn">Download QR</button>
+          </div>
+          <div class="block-note">Black on white with a clear margin, 928 by 928 pixels. Scanning it opens this venue’s landing page.</div>
         </div>
 
         <div class="panel-block" style="max-width:480px;">
@@ -1340,6 +1346,13 @@
       warn.textContent = 'The code is lighter than its background. Some phones will not scan that, so test it before printing.'; warn.style.display = 'block';
     } else warn.style.display = 'none';
     $('card-nolink').style.display = demo ? 'none' : 'block';
+    var lbox = $('landing-qr-preview');
+    lbox.innerHTML = '';
+    if (land) {
+      var lframe = document.createElement('div'); lframe.className = 'qr-frame'; lbox.appendChild(lframe);
+      new QRCode(lframe, { text: land, width: 180, height: 180, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.H });
+    }
+    $('landing-qr-download-btn').disabled = !land;
     var canvas = $('card-canvas');
     if (demo) { var token = ++cardDrawToken; drawCard(canvas, v, function() { if (token !== cardDrawToken) return; }); }
     else canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
@@ -1381,6 +1394,35 @@
       a.href = out.toDataURL('image/png'); a.download = 'table-card-' + slug + '-' + (cardState.number || 'x') + '.png';
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
     });
+  });
+
+  // Landing page QR for the mailer: plain black on white, with a clear margin so it scans on any card stock
+  $('landing-qr-download-btn').addEventListener('click', function() {
+    var v = currentVenue();
+    var url = v && landingUrl(v.slug);
+    if (!url) return;
+    var PAD = 64, SIZE = 800;
+    var scratch = document.createElement('div');
+    scratch.style.position = 'absolute'; scratch.style.left = '-9999px';
+    document.body.appendChild(scratch);
+    new QRCode(scratch, { text: url, width: SIZE, height: SIZE, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.H });
+    setTimeout(function() {
+      var src = scratch.querySelector('canvas'), img = scratch.querySelector('img');
+      var out = document.createElement('canvas');
+      out.width = out.height = SIZE + PAD * 2;
+      var ctx = out.getContext('2d');
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, out.width, out.height);
+      function finish() {
+        document.body.removeChild(scratch);
+        var slug = v.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'venue';
+        var a = document.createElement('a');
+        a.href = out.toDataURL('image/png'); a.download = 'landing-qr-' + slug + '.png';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      }
+      if (src) { ctx.drawImage(src, PAD, PAD); finish(); }
+      else if (img) { var i2 = new Image(); i2.onload = function() { ctx.drawImage(i2, PAD, PAD, SIZE, SIZE); finish(); }; i2.src = img.src; }
+      else { document.body.removeChild(scratch); alert('Could not generate the QR code. Try again.'); }
+    }, 200);
   });
 
   // ─── SIGN IN ────────────────────────────────────────────────────────────────
