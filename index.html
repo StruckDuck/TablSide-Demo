@@ -41,11 +41,9 @@
   .proof { margin:1.75rem auto .5rem; width:min(100%, 28rem); }
   .proof .tent { margin:0; }
   .proof figcaption { margin-top:.7rem; font-family:'IM Fell English SC', Georgia, serif; font-size:.78rem; letter-spacing:.2em; color:var(--oak); opacity:.75; }
-  .tent { position:relative; display:block; width:100%; padding:7px; border:1px solid var(--rulec); background:var(--ink); background-clip:content-box; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .tent { position:relative; display:block; width:100%; padding:0; border:0; background:transparent; cursor:pointer; -webkit-tap-highlight-color:transparent; }
   .tent img { display:block; width:100%; height:auto; }
-  .tent::after { content:''; position:absolute; inset:-7px; border:1px solid var(--litho); opacity:0; pointer-events:none; animation:tentpulse 2.6s ease-in-out infinite; }
-  .tent:focus-visible { outline:3px solid var(--litho); outline-offset:6px; }
-  @keyframes tentpulse { 0%,100% { opacity:0; transform:scale(1); } 50% { opacity:.6; transform:scale(1.015); } }
+  .tent:focus-visible { outline:3px solid var(--litho); outline-offset:2px; }
 
   .proof-photo { margin:2rem auto 1.75rem; }
   .frame { padding:7px; border:1px solid var(--rulec); }
@@ -145,7 +143,7 @@
   .g-error { font-size:0.65rem; color:#f5a0a0; text-align:center; letter-spacing:0.08em; text-transform:uppercase; min-height:1rem; }
 
   @media (prefers-reduced-motion: reduce) {
-    .tent::after, .g-status-ring, .g-status-dot, .demo-btn, .note { animation:none !important; }
+    .g-status-ring, .g-status-dot, .demo-btn, .note { animation:none !important; }
   }
 </style>
 </head>
@@ -443,12 +441,12 @@
   applyTexts();   // defaults first; the venue's own wording replaces them when it arrives
 
   // ─── THE TABLE CARD PICTURE ─────────────────────────────────────────────────
-  // assets/<venue id>.jpg if you made one for this venue, otherwise assets/default.jpg
+  // assets/<venue id>.png if you made one for this venue, otherwise assets/default.png
   (function() {
     var img = $('tent-img');
     var safe = /^[A-Za-z0-9_-]+$/.test(venueId) ? venueId : '';
-    img.onerror = function() { img.onerror = null; img.src = 'assets/default.jpg'; };
-    img.src = safe ? 'assets/' + safe + '.jpg' : 'assets/default.jpg';
+    img.onerror = function() { img.onerror = null; img.src = 'assets/default.png'; };
+    img.src = safe ? 'assets/' + safe + '.png' : 'assets/default.png';
   })();
 
   // ─── DEMO STATE ─────────────────────────────────────────────────────────────
