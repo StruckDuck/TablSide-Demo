@@ -634,6 +634,8 @@
   }
   function currentBase() { return normBase(savedBase() || defaultBase()); }
   function landingUrl(slug) { var b = currentBase(); return b ? b + '?venue=' + encodeURIComponent(slug) : ''; }
+  // The landing link carries the card's table number, so the demo prefills the number printed on the card
+  function landingTableUrl(slug) { var l = landingUrl(slug); var n = (cardState.slug === slug && cardState.number) ? String(cardState.number).replace(/[^0-9]/g, '') : ''; return l && n ? l + '&table=' + n : l; }
   function demoUrl(slug) { var l = landingUrl(slug); return l ? l + '&demo=1' : ''; }
 
   function copyText(text, btn) {
@@ -1330,8 +1332,8 @@
     if (!v) return;
     var baseInput = $('pitch-base');
     if (document.activeElement !== baseInput) baseInput.value = savedBase() || defaultBase();
-    var land = landingUrl(v.slug), demo = demoUrl(v.slug);
     if (cardState.slug !== v.slug) { loadCardState(v.slug); cardState.slug = v.slug; $('card-text').value = cardState.text; $('card-number').value = cardState.number; }
+    var land = landingTableUrl(v.slug), demo = demoUrl(v.slug);
     var pal = venuePalette(v);
     renderSwatches('card-bg-swatches', 'bg', pal);
     renderSwatches('card-fg-swatches', 'fg', pal);
@@ -1378,7 +1380,7 @@
     cardState.number = this.value; saveCardState(v.slug); renderQrTab();
   });
   $('qr-copy-demo-btn').addEventListener('click', function() { var v = currentVenue(); if (v) copyText(demoUrl(v.slug), this); });
-  $('copy-landing-btn').addEventListener('click', function() { var v = currentVenue(); if (v) copyText(landingUrl(v.slug), this); });
+  $('copy-landing-btn').addEventListener('click', function() { var v = currentVenue(); if (v) copyText(landingTableUrl(v.slug), this); });
 
   $('qr-download-btn').addEventListener('click', function() {
     var v = currentVenue();
@@ -1394,7 +1396,7 @@
   // Landing page QR for the mailer: plain black on white, with a clear margin so it scans on any card stock
   $('landing-qr-download-btn').addEventListener('click', function() {
     var v = currentVenue();
-    var url = v && landingUrl(v.slug);
+    var url = v && landingTableUrl(v.slug);
     if (!url) return;
     var PAD = 64, SIZE = 800;
     var scratch = document.createElement('div');
