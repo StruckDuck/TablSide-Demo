@@ -503,7 +503,7 @@
                 <button class="btn btn-solid" id="qr-download-btn">Download Card</button>
                 <button class="btn btn-outline" id="qr-copy-demo-btn">Copy Demo Link</button>
               </div>
-              <div class="block-note">Saved in this browser for each venue. The image is 601 by 751 pixels. Change the number and download again for each table.</div>
+              <div class="block-note">Saved in this browser for each venue. The image is 601 by 751 pixels. Save it in your assets folder as downloaded. The file is named after the venue so the demo page finds it.</div>
             </div>
             <div class="card-preview-wrap"><canvas id="card-canvas" width="601" height="751"></canvas></div>
           </div>
@@ -1385,9 +1385,8 @@
     if (!v || !demoUrl(v.slug)) return;
     var out = document.createElement('canvas');
     drawCard(out, v, function() {
-      var slug = v.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'venue';
       var a = document.createElement('a');
-      a.href = out.toDataURL('image/png'); a.download = 'table-card-' + slug + '-' + (cardState.number || 'x') + '.png';
+      a.href = out.toDataURL('image/png'); a.download = v.slug + '.png';
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
     });
   });
